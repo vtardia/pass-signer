@@ -1,0 +1,23 @@
+{
+    "name":        "vtardia/pass-signer",
+    "type":        "library",
+    "description": "Passbook signing utility for PHP",
+    "keywords":    ["passbook", "ios", "pass", "mobile", "wallet", "coupons", "tickets"],
+    "homepage":    "https://github.com/vtardia/signpass",
+    "license":     "MIT",
+    "authors": [
+        {
+            "name": "Vito Tardia",
+            "email": "vito@tardia.me"
+        }
+    ],
+    "require": {
+        "php": ">=5.3.0",
+        "ext-zip": "*",
+        "ext-openssl": "*"
+    },
+    "autoload":     {
+        "psr-0": { "PassSigner\\": "src/" }
+    },
+    "bin":["signpass"]
+}

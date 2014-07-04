@@ -1,0 +1,148 @@
+#!/usr/bin/env php
+<?php
+if (file_exists(__DIR__ . '/vendor/autoload.php')) {
+    require_once __DIR__ . '/vendor/autoload.php';
+} elseif (file_exists(__DIR__.'/../../autoload.php')) {
+    require_once __DIR__ . '/../../autoload.php';
+}
+
+use PassSigner\PassSigner;
+
+/**
+ * Displays program usage
+ */
+function usage()
+{
+    print("usage:\tsignpass -p /path/to/pass/directory ");
+    print("-c /path/to/ssl/certificate ");
+    print("-w certificate-password [-o /path/to/output/file] \n");
+    print("\tsignpass -v /path/to/signed/pass\n");
+    print("\n\t -p Sign and zip a raw pass directory\n");
+    print("\t -v Unzip and verify a signed pass's signature and manifest. ");
+    print("This DOES NOT validate pass content.\n");
+}
+
+//// MAIN
+
+
+/// Init
+
+$passPath     = null;
+$certPath     = null;
+$certPassword = null;
+$outputPath   = null;
+$verifyPath   = null;
+
+// Default location for Apple Certificate
+define(
+    'APPLE_CERTIFICATE',
+    realpath(dirname(__FILE__) . '/cert/AppleWWDRCA.pem')
+);
+
+/// Collecting arguments
+
+// Directory containing the Pass to sign
+if (in_array('-p', $argv) && !in_array('-v', $argv)) {
+    $pp = array_search('-p', $argv, true);
+    if ($pp !== false) {
+        $passPath = $argv[$pp + 1];
+    }
+}
+
+// Certificate
+if (in_array('-c', $argv)) {
+    $cs = array_search('-c', $argv, true);
+    if ($cs !== false) {
+        $certPath = $argv[$cs +1];
+        $certPath = realpath($certPath);
+    }
+}
+
+// Certificate password
+if (in_array('-w', $argv)) {
+    $cw = array_search('-w', $argv, true);
+    if ($cw !== false) {
+        $certPassword = $argv[$cw +1];
+    }
+}
+
+// Output file (or directory)
+if (in_array('-o', $argv)) {
+    $op = array_search('-o', $argv, true);
+    if ($op !== false) {
+        $outputPath = $argv[$op + 1];
+    }
+}
+
+// Pass package to verify
+if (in_array('-v', $argv) && !in_array('-p', $argv)) {
+    $vp = array_search('-v', $argv, true);
+    if ($vp !== false) {
+        $verifyPath = $argv[$vp + 1];
+    }
+}
+
+
+/// Check arguments
+
+if (!$passPath && !$verifyPath) {
+    usage();
+    exit(1);
+}
+
+
+/// Perform pass sign action
+    
+if ($passPath) {
+    
+    if (!$outputPath) {
+        $outputPath = dirname($passPath) . '.pkpass';
+    }
+    
+    try {
+        PassSigner::signPass(
+            $passPath,
+            $certPath,
+            $certPassword,
+            $outputPath,
+            true
+        );
+    } catch (Exception $e) {
+        echo $e->getMessage(), "\n";
+        exit($e->getCode());
+    }
+    
+}
+
+/// Perform validation action
+
+if ($verifyPath) {
+    
+    try {
+        $valid = PassSigner::verifyPassSignature($verifyPath, $certs);
+
+        if (!empty($certs)) {
+            echo "Certificates: (", "\n";
+            for ($i = 0; $i < count($certs); $i++) {
+                $commonName = $certs[$i]['subject']['CN'];
+                printf("\t%ld: %s\n", $i, $commonName);
+            }
+            echo ")\n";
+        }
+
+        if ($valid) {
+            echo "\n*** SUCCEEDED ***\n";
+        } else {
+            echo "\n*** FAILED ***\n";
+        }
+
+    } catch (Exception $e) {
+        echo $e->getMessage(), "\n";
+        exit($e->getCode());
+    }
+    
+}
+
+/// Clean exit
+    
+exit(0);
